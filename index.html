@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="author" content="Melanio R. Florino, Chit R. Laplana">
+    <meta name="description" content="Plant Identification Tool for Pablo Lorenzo National High School">
+    
+    <title>Pablo Lorenzo NHS - Plant Identifier</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        body { background-color: #f0fdf4; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        .camera-container { position: relative; width: 100%; height: 60vh; background: #000; overflow: hidden; }
+        video { width: 100%; height: 100%; object-fit: cover; }
+        .scan-overlay { position: absolute; top: 12.5%; left: 12.5%; width: 75%; height: 75%; border: 2px solid rgba(255,255,255,0.8); border-radius: 20px; box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5); pointer-events: none; }
+        .hidden { display: none !important; }
+        .loader { border-top-color: #15803d; -webkit-animation: spinner 1.5s linear infinite; animation: spinner 1.5s linear infinite; }
+        @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        /* Institutional Branding Gradient */
+        .brand-gradient { background: linear-gradient(135deg, #14532d 0%, #166534 100%); }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col text-gray-800">
+
+    <header class="brand-gradient text-white shadow-lg z-20">
+        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <div class="bg-white text-green-800 rounded-full w-10 h-10 flex items-center justify-center font-bold text-lg shadow-inner">
+                    <i class="fas fa-school"></i>
+                </div>
+                <div>
+                    <h1 class="text-xs font-bold tracking-widest uppercase opacity-80">Pablo Lorenzo NHS</h1>
+                    <h2 class="text-lg font-bold leading-none">Plant Identifier</h2>
+                </div>
+            </div>
+            <button id="resetBtn" class="hidden text-xs bg-white text-green-900 font-bold px-3 py-1.5 rounded shadow hover:bg-gray-100 transition">
+                <i class="fas fa-redo mr-1"></i> Scan Again
+            </button>
+        </div>
+    </header>
+
+    <main class="flex-grow flex flex-col w-full max-w-md mx-auto relative bg-white shadow-2xl md:my-6 md:rounded-2xl overflow-hidden">
+
+        <div id="view-landing" class="flex flex-col h-full">
+            
+            <div class="flex-grow flex flex-col items-center justify-center p-8 text-center space-y-6">
+                <div class="relative">
+                    <div class="absolute inset-0 bg-green-200 rounded-full opacity-50 blur-xl"></div>
+                    <i class="fas fa-leaf text-green-700 text-6xl relative z-10"></i>
+                </div>
+                
+                <div>
+                    <h3 class="text-2xl font-bold text-gray-800">Digital Herbarium</h3>
+                    <p class="text-gray-500 text-sm mt-2">Scan leaves or flowers to access scientific data instantly.</p>
+                </div>
+
+                <div class="w-full space-y-3 pt-4">
+                    <button onclick="startCamera()" class="w-full brand-gradient text-white font-bold py-4 rounded-xl shadow-lg hover:shadow-xl transition transform active:scale-95 flex items-center justify-center">
+                        <i class="fas fa-camera mr-2"></i> Start Scanner
+                    </button>
+
+                    <label class="w-full bg-white border-2 border-green-100 text-green-800 font-bold py-3 rounded-xl hover:bg-green-50 text-center cursor-pointer transition flex items-center justify-center">
+                        <i class="fas fa-upload mr-2"></i> Upload Image
+                        <input type="file" id="fileInput" accept="image/*" class="hidden" onchange="handleFileUpload(event)">
+                    </label>
+                </div>
+            </div>
+
+            <div class="bg-gray-50 border-t border-gray-200 p-6 text-center">
+                <p class="text-[10px] text-gray-400 uppercase tracking-widest font-bold mb-2">An Innovation By</p>
+                <div class="flex flex-col space-y-1">
+                    <div class="flex items-center justify-center space-x-2">
+                        <i class="fas fa-user-graduate text-green-700 text-xs"></i>
+                        <span class="font-bold text-gray-800">Melanio R. Florino</span>
+                    </div>
+                    <div class="text-xs text-gray-400">&</div>
+                    <div class="flex items-center justify-center space-x-2">
+                        <i class="fas fa-user-graduate text-green-700 text-xs"></i>
+                        <span class="font-bold text-gray-800">Chit R. Laplana</span>
+                    </div>
+                </div>
+                <p class="text-[10px] text-gray-400 mt-4">Pablo Lorenzo National High School © 2026</p>
+            </div>
+        </div>
+
+        <div id="view-camera" class="hidden absolute inset-0 bg-black flex flex-col z-30">
+            <div class="camera-container">
+                <video id="videoFeed" autoplay playsinline muted></video>
+                <div class="scan-overlay">
+                    <div class="absolute top-2 left-0 w-full text-center text-white text-xs font-bold tracking-widest shadow-black drop-shadow-md">
+                        ALIGN PLANT HERE
+                    </div>
+                </div>
+            </div>
+            
+            <div class="flex-grow bg-gray-900 flex items-center justify-around p-6">
+                <button onclick="stopCamera()" class="text-gray-400 hover:text-white transition">
+                    <i class="fas fa-arrow-left text-2xl"></i>
+                </button>
+                
+                <button onclick="captureImage()" class="bg-white rounded-full w-20 h-20 border-4 border-gray-600 flex items-center justify-center hover:scale-105 transition shadow-lg shadow-green-900/50">
+                    <div class="w-16 h-16 brand-gradient rounded-full border-2 border-white"></div>
+                </button>
+                
+                <button onclick="switchCamera()" class="text-white hover:text-green-400 transition">
+                    <i class="fas fa-sync-alt text-2xl"></i>
+                </button>
+            </div>
+        </div>
+
+        <div id="view-loading" class="hidden absolute inset-0 bg-white z-40 flex flex-col items-center justify-center p-8 text-center">
+            <div class="loader ease-linear rounded-full border-4 border-t-4 border-gray-100 h-16 w-16 mb-6"></div>
+            <h2 class="text-xl font-bold text-green-900">Processing Image...</h2>
+            <p class="text-gray-500 text-sm mt-2" id="loading-text">Identifying species...</p>
+        </div>
+
+        <div id="view-results" class="hidden h-full overflow-y-auto bg-gray-50 pb-10">
+            <div id="results-content"></div>
+            
+            <div class="p-4 text-center text-gray-300 text-xs mt-4">
+                <p>Pablo Lorenzo NHS • Florino & Laplana</p>
+            </div>
+        </div>
+
+    </main>
+
+    <canvas id="canvas" class="hidden"></canvas>
+
+    <script>
+        // --- CONFIGURATION ---
+        const API_KEY = 'YOUR_API_KEY_HERE'; // 🔴 INSERT API KEY
+        const MOCK_MODE = true; // 🟢 Set to FALSE for real data
+        
+        // --- DOM & STATE ---
+        const views = {
+            landing: document.getElementById('view-landing'),
+            camera: document.getElementById('view-camera'),
+            loading: document.getElementById('view-loading'),
+            results: document.getElementById('view-results')
+        };
+        const video = document.getElementById('videoFeed');
+        const canvas = document.getElementById('canvas');
+        const resultContent = document.getElementById('results-content');
+        const resetBtn = document.getElementById('resetBtn');
+
+        let stream = null;
+        let currentFacingMode = 'environment';
+
+        // --- NAVIGATION ---
+        function switchView(viewName) {
+            Object.values(views).forEach(el => el.classList.add('hidden'));
+            views[viewName].classList.remove('hidden');
+            resetBtn.classList.toggle('hidden', viewName !== 'results');
+        }
+
+        resetBtn.addEventListener('click', () => {
+            stopCamera();
+            switchView('landing');
+            resultContent.innerHTML = '';
+        });
+
+        // --- CAMERA FUNCTIONS ---
+        async function startCamera() {
+            switchView('camera');
+            const constraints = { video: { facingMode: currentFacingMode } };
+            try {
+                stream = await navigator.mediaDevices.getUserMedia(constraints);
+                video.srcObject = stream;
+            } catch (err) {
+                alert("Camera unavailable. Please use the Upload button.");
+                switchView('landing');
+            }
+        }
+
+        function stopCamera() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                video.srcObject = null;
+            }
+        }
+
+        function switchCamera() {
+            currentFacingMode = currentFacingMode === 'environment' ? 'user' : 'environment';
+            stopCamera();
+            startCamera();
+        }
+
+        function captureImage() {
+            const context = canvas.getContext('2d');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            stopCamera();
+            processImage(canvas.toDataURL('image/jpeg', 0.8));
+        }
+
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => processImage(e.target.result);
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // --- PROCESSING ---
+        async function processImage(base64Image) {
+            switchView('loading');
+            updateLoadingText();
+
+            let data;
+            if (MOCK_MODE) {
+                await new Promise(r => setTimeout(r, 2000));
+                data = getMockData();
+            } else {
+                try {
+                    const response = await fetch('https://api.plant.id/v2/identify', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Api-Key': API_KEY },
+                        body: JSON.stringify({
+                            images: [base64Image],
+                            modifiers: ["crops_fast", "similar_images"],
+                            plant_details: ["common_names", "taxonomy", "url", "wiki_description"]
+                        })
+                    });
+                    data = await response.json();
+                } catch (error) {
+                    alert("Error: " + error.message);
+                    switchView('landing');
+                    return;
+                }
+            }
+            renderResults(data, base64Image);
+            switchView('results');
+        }
+
+        function updateLoadingText() {
+            const texts = ["Analyzing leaf structure...", "Querying botanical database...", "Identifying species..."];
+            let i = 0;
+            setInterval(() => document.getElementById('loading-text').innerText = texts[i++ % texts.length], 800);
+        }
+
+        // --- RENDER RESULTS ---
+        function renderResults(apiResponse, userImage) {
+            const result = apiResponse.suggestions ? apiResponse.suggestions[0] : apiResponse;
+            const probability = Math.round(result.probability * 100);
+            
+            const html = `
+                <div class="relative h-72 w-full">
+                    <img src="${userImage}" class="w-full h-full object-cover">
+                    <div class="absolute inset-0 bg-gradient-to-t from-green-900 to-transparent opacity-90"></div>
+                    <div class="absolute bottom-0 left-0 w-full p-6 text-white">
+                        <span class="bg-green-500 text-xs font-bold px-2 py-1 rounded mb-2 inline-block">MATCH FOUND</span>
+                        <h2 class="text-3xl font-bold leading-tight">${result.plant_name}</h2>
+                        <p class="font-serif italic text-green-200 text-lg">${result.scientific_name}</p>
+                    </div>
+                </div>
+
+                <div class="px-6 py-6 -mt-6 relative bg-white rounded-t-3xl shadow-inner space-y-6">
+                    
+                    <div class="flex items-center space-x-3">
+                        <div class="flex-grow bg-gray-200 rounded-full h-2.5">
+                            <div class="bg-green-600 h-2.5 rounded-full" style="width: ${probability}%"></div>
+                        </div>
+                        <span class="text-xs font-bold text-gray-500">${probability}% Accuracy</span>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="bg-green-50 p-3 rounded-xl border border-green-100">
+                            <div class="text-green-600 text-xs font-bold uppercase mb-1">Origin</div>
+                            <div class="text-gray-800 font-semibold text-sm">${result.origin}</div>
+                        </div>
+                        <div class="bg-blue-50 p-3 rounded-xl border border-blue-100">
+                            <div class="text-blue-600 text-xs font-bold uppercase mb-1">Watering</div>
+                            <div class="text-gray-800 font-semibold text-sm">${result.care.watering}</div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h3 class="font-bold text-gray-800 mb-2 flex items-center">
+                            <i class="fas fa-info-circle text-green-600 mr-2"></i>Botanical Description
+                        </h3>
+                        <p class="text-gray-600 text-sm leading-relaxed">${result.description}</p>
+                    </div>
+
+                    <div>
+                        <h3 class="font-bold text-gray-800 mb-2 flex items-center">
+                            <i class="fas fa-seedling text-green-600 mr-2"></i>Cultivation & Care
+                        </h3>
+                        <div class="bg-gray-50 rounded-xl p-4 text-sm text-gray-600 space-y-2">
+                            ${result.care.tips.map(tip => `<div class="flex items-start"><span class="text-green-500 mr-2">•</span><span>${tip}</span></div>`).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+            resultContent.innerHTML = html;
+        }
+
+        // --- MOCK DATA ---
+        function getMockData() {
+            return {
+                plant_name: "Sampaguita",
+                scientific_name: "Jasminum sambac",
+                probability: 0.99,
+                origin: "Tropical Asia (Philippines National Flower)",
+                description: "Sampaguita is the national flower of the Philippines. It is a sweet-smelling, tropical shrub known for its waxy white star-shaped flowers that open at night.",
+                care: {
+                    watering: "Moderate / Daily in summer",
+                    tips: [
+                        "Thrives in full sun to partial shade.",
+                        "Requires well-draining soil rich in organic matter.",
+                        "Prune after flowering to encourage new growth."
+                    ]
+                }
+            };
+        }
+    </script>
+</body>
+</html>
